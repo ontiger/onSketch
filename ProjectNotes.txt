@@ -1,0 +1,44 @@
+OnSketch
+
+User Story - 
+Click Line command
+     underlying process - create line command object, line command object will start to listen mouse events and keyboard events- 
+	                      mouse click - pick point1
+						  mouse move - preview the line from current position to point1
+						  mouse click - pick point2, draw the line from point2 to point1, then end the command
+						  ESC - abort the command
+						  mouse clink on other command - abort current command and start that command
+
+Drag sketch curve or point need solve!!
+
+UI - 
+   Sketch commands - 
+         Line
+		 Rectangular
+		 Circle
+		 Polyline
+	
+    Creation/Edit
+
+
+Coordinate System geometries - three planes, three Axixs
+
+Select any plane to create sketch, translate the camera to make it look at the selected plane?
+
+Pick (selection/highlight) - Raycaster
+
+Scene/Geometry - Three.js
+UI/command - AngularJs
+
+
+
+
+
+
+
+
+						  
+						  
+
+
+	
