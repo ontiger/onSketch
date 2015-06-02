@@ -23,8 +23,8 @@
 				var newPt = new THREE.Vector3();
 				newPt.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 				newPt.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-				newPt.z = 0;
-					
+				newPt.z = 0.5;
+				newPt.unproject( camera )	
 				if(startPt == null)
 					startPt = newPt;
 				else{					
@@ -34,12 +34,17 @@
 			}
 
 			function onMouseMove(event){
-
+                
 				if(startPt != null){
+				    // NDC (normalized Device Coordinate) x [-1, 1], y[1,-1]
 					var tempPt = new THREE.Vector3();
 					tempPt.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 					tempPt.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-					tempPt.z = 0;
+					tempPt.z = 0.5;
+					
+					// inverse project transform to get the position in canvas
+					tempPt.unproject( camera )
+					
 					drawLine(startPt, tempPt, true);
 				}
 			}
