@@ -10,7 +10,11 @@
 	<body>
 		<div id="SketchToolbar" width="100%" height="5%">
 			<svg>
-				<line x1="10" x2="50" y1="50%" y2="50%" stroke="orange" fill="transparent" stroke-width="5" onclick="onClickLineCmd()"/>
+				<line x1="10" x2="50" y1="50%" y2="50%" stroke="orange" fill="transparent" stroke-width="5" onclick="onClickLineCmd()">
+					<set attributeName="stroke" to="blue" begin="mouseover"/>
+					<set attributeName="stroke" to="orange" begin="mouseout"/>
+				</line>
+				
 			</svg>
 		</div>
 		<div id="SketchCanvas" width="100%" height="95%" >			
@@ -20,6 +24,7 @@
 				{
 					enableLineCommand = !enableLineCommand;
 				}
+
 				var scene = new THREE.Scene();
 				var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / (window.innerHeight), 0.1, 1000 );
 
@@ -73,11 +78,7 @@
 				}
 				
 				function drawLine(pt1, pt2, preview){
-					if(previewline != null){
-						scene.remove(previewline);
-						previewline = null;
-					}
-					
+					clearPreview();					
 					var geometry = drawDirectLine(pt1, pt2);
 					var material = new THREE.LineBasicMaterial({color: 0x00ff00});
 					if(preview == true){
@@ -105,8 +106,37 @@
 					return geometry;
 				}
 				
-				window.addEventListener( 'mousemove', onMouseMove, false );
-				window.addEventListener( 'click', onMouseClick, false );
+				renderer.domElement.addEventListener( 'mousemove', onMouseMove, false );
+				renderer.domElement.addEventListener( 'click', onMouseClick, false );
+				
+				// canvas doesn't support keyboard event, use window instead
+				window.addEventListener( 'keydown', onKeyPress, true);
+				
+				function clearPreview()
+				{
+					if(previewline != null)
+					{
+						scene.remove(previewline);
+						previewline = null;
+					}
+				}
+				
+				function onKeyPress(event)
+				{
+					//alert("press");
+					var  keyCode = event.keyCode ? event.keyCode : event.which;
+					switch(keyCode)
+					{
+					   case 27: //ESC
+						   {
+							clearPreview();
+							startPt = null;
+						   }
+						   break;
+					   default:
+						   break;
+					}
+				}
 				
 				function updateSize() {
 
