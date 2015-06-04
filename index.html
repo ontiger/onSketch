@@ -1,0 +1,137 @@
+<html>
+	<head>
+		<title>OnSketch</title>
+		<style>
+			body { margin: 0; }			
+			svg { width: 100%; height: 5%; background-color: gray}
+		</style>
+		<script src="js/three.min.js"></script>
+	</head>
+	<body>
+		<div id="SketchToolbar" width="100%" height="5%">
+			<svg>
+				<line x1="10" x2="50" y1="50%" y2="50%" stroke="orange" fill="transparent" stroke-width="5" onclick="onClickLineCmd()"/>
+			</svg>
+		</div>
+		<div id="SketchCanvas" width="100%" height="95%" >			
+			<script>
+				var enableLineCommand = false;
+				function onClickLineCmd()
+				{
+					enableLineCommand = !enableLineCommand;
+				}
+				var scene = new THREE.Scene();
+				var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / (window.innerHeight), 0.1, 1000 );
+
+				var viewWidth = window.innerWidth;
+				var viewHeight = window.innerHeight*0.95;
+				var viewX = 0;
+				var viewY = window.innerHeight *0.05;
+				
+				var renderer = new THREE.WebGLRenderer();
+				renderer.setSize( viewWidth, viewHeight );
+				renderer.setViewport(viewX, viewY, viewWidth, viewHeight);
+				// set background color
+				renderer.setClearColor(0x334455, 1); 
+				document.body.appendChild( renderer.domElement );				
+
+				camera.position.z = 1;
+				var startPt = null;
+				var previewline = null;
+				function onMouseClick(event){
+					if(!enableLineCommand)
+						return;
+					if(event.clientY < viewY)
+						return;
+					var newPt = new THREE.Vector3();
+					newPt.x = ( event.clientX / viewWidth ) * 2 - 1;
+					newPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+					newPt.z = 0.5;
+					newPt.unproject( camera )	
+					if(startPt == null)
+						startPt = newPt;
+					else{					
+						drawLine(startPt, newPt, false);
+						startPt = null;
+					}
+				}
+
+				function onMouseMove(event){
+					
+					if(startPt != null){
+						// NDC (normalized Device Coordinate) x [-1, 1], y[1,-1]
+						var tempPt = new THREE.Vector3();
+						tempPt.x = ( event.clientX / viewWidth ) * 2 - 1;
+						tempPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+						tempPt.z = 0.5;
+						
+						// inverse project transform to get the position in canvas
+						tempPt.unproject( camera )
+						
+						drawLine(startPt, tempPt, true);
+					}
+				}
+				
+				function drawLine(pt1, pt2, preview){
+					if(previewline != null){
+						scene.remove(previewline);
+						previewline = null;
+					}
+					
+					var geometry = drawDirectLine(pt1, pt2);
+					var material = new THREE.LineBasicMaterial({color: 0x00ff00});
+					if(preview == true){
+						previewline = new THREE.Line(geometry, material);
+						scene.add(previewline);
+					}
+					else
+						scene.add(new THREE.Line(geometry, material));
+				}
+				
+				function drawRect(pt1, pt2)
+				{
+					pt3 = new THREE.Vector3(pt2.x, pt1.y,0.5);
+					pt4 = new THREE.Vector3(pt1.x, pt2.y, 0.5);
+
+					var geometry = new THREE.Geometry;
+					geometry.vertices.push(pt1, pt4, pt2, pt3, pt1);
+					return geometry;
+				}
+				
+				function drawDirectLine(pt1, pt2)
+				{			
+					var geometry = new THREE.Geometry;
+					geometry.vertices.push(pt1, pt2);
+					return geometry;
+				}
+				
+				window.addEventListener( 'mousemove', onMouseMove, false );
+				window.addEventListener( 'click', onMouseClick, false );
+				
+				function updateSize() {
+
+					if ( viewWidth != window.innerWidth || viewHeight != window.innerHeight*0.95 ) {
+
+						viewWidth  = window.innerWidth;
+						viewHeight = window.innerHeight*0.95;
+						viewY = window.innerHeight * 0.05;
+						renderer.setSize ( viewWidth, viewHeight );
+						renderer.setViewport(viewX, viewY, viewWidth, viewHeight);
+					}
+				}
+				
+				function draw() {
+
+					updateSize();
+				
+					requestAnimationFrame( draw );
+					
+					renderer.render( scene, camera );
+				}
+				
+				draw();
+				
+			</script>
+		<div>
+	</body>
+</html>
