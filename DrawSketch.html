@@ -1,0 +1,277 @@
+<html>
+	<head>
+		<title>Draw Sketch</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body onload='Initialize()'>
+		<form action="test.action" name="toolbar" method="post">  
+			<img src="resources/drawpolyline.png"  border="0" style="CURSOR: hand" onclick="drawPolyline()" />  
+			<img src="resources/circlecenterradius.png"  border="0" style="CURSOR: hand" onclick="drawCircleCenterRadius()"/>  
+			<img src="resources/rectangletwopoint.png"  border="0" style="CURSOR: hand" />  			
+		</form> 
+  
+		<script src="js/three.min.js"></script>
+		<script>
+			var viewWidth = window.innerWidth;
+			var viewHeight = window.innerHeight*0.95;
+			var viewX = 0;
+			var viewY = viewHeight *0.05;		
+			var renderer, camera, scene, light;
+			
+			// initial three node js environment	
+			function initThree() {
+				renderer = new THREE.WebGLRenderer({antialias:true});
+				renderer.setSize(viewWidth, viewHeight);
+				renderer.setViewport(viewX, viewY, viewWidth, viewHeight);
+				// set background color
+				renderer.setClearColor(0x334455, 1.0);
+				document.body.appendChild(renderer.domElement);
+			}
+			
+			// initial camera
+			function initCamera() {
+				camera = new THREE.PerspectiveCamera(75, viewWidth / (viewHeight), 0.1, 1000);
+				//camera.position.x = 400;//set the position of camera
+				//camera.position.y = 0;
+				camera.position.z = 1;  
+				//set the direction of camera
+				//camera.up.x = 0;
+				//camera.up.y = 1;
+				//camera.up.z = 0;
+			} 
+			
+			//initial scene
+			function initScene() {
+				scene = new THREE.Scene();
+			}
+			
+			// initial light
+			function initLight() {
+				light = new THREE.DirectionalLight(0x0000FF,1.0,0);
+				light.position.set(50,50,50);
+				scene.add(light);
+			}
+			
+			initThree();
+			initCamera();
+			initScene();
+			initLight();
+			
+			function updateSize() {
+				if ( viewWidth != window.innerWidth || viewHeight != window.innerHeight*0.95 ) {
+					viewWidth  = window.innerWidth;
+					viewHeight = window.innerHeight*0.95;
+					viewY = window.innerHeight * 0.05;
+					renderer.setSize ( viewWidth, viewHeight );
+					renderer.setViewport(viewX, viewY, viewWidth, viewHeight);
+				}
+			}
+				
+			// base command
+			function InteractiveCommand(id){
+				this.id = id;
+				var material = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+													
+				this.subScriptEvents = function()
+				{
+					renderer.domElement.addEventListener( 'mousedown', this.onMouseDown, false );
+					renderer.domElement.addEventListener( 'mousemove', this.onMouseMove, false );
+					
+					// canvas doesn't support keyboard event, use window instead
+					window.addEventListener( 'keydown', this.onKeyPress, true);
+				}
+
+				this.unsubScriptEvents = function()
+				{
+					renderer.domElement.removeEventListener( 'mousedown', this.onMouseDown, false );
+					renderer.domElement.removeEventListener( 'mousemove', this.onMouseMove, false );
+					
+					// canvas doesn't support keyboard event, use window instead
+					window.addEventListener( 'keydown', this.onKeyPress, true);
+				}				
+			}
+			
+			// sketch base command
+			function SketchCommand(id){
+				InteractiveCommand.call(this, id);
+			}
+			
+			SketchCommand.prototype = new InteractiveCommand;
+			
+			// draw polyline command
+			function DrawPolylineCmd(id){
+				SketchCommand.call(this, id);
+				
+				var startPt = null;
+				var endPtPt = null;
+				var previewline = null;		
+				var that = this; // store this
+				
+				this.onMouseDown = function(event){
+					var newPt = new THREE.Vector3();
+					newPt.x = ( event.clientX / viewWidth ) * 2 - 1;
+					newPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+					newPt.z = 0.5;
+					newPt.unproject( camera );	
+					if(this.startPt == null)
+						this.startPt = newPt;
+					else{				
+						that.drawLine(this.startPt, newPt, false);
+						this.startPt =  newPt;
+					}
+				}
+
+				this.onMouseMove = function(event){
+					if(this.startPt != null){
+						var tempPt = new THREE.Vector3();
+						tempPt.x = ( event.clientX / viewWidth ) * 2 - 1;
+						tempPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+						tempPt.z = 0.5;
+					
+						// inverse project transform to get the position in canvas
+						tempPt.unproject( camera );
+					
+						that.drawLine(this.startPt, tempPt, true);
+					}
+				}
+
+				this.onKeyPress = function(event){
+					var  keyCode = event.keyCode ? event.keyCode : event.which;
+					switch(keyCode)
+					{
+					   case 27: //ESC
+						   {
+								//clearPreview();
+								startPt = null;
+								that.unsubScriptEvents();
+						   }
+						   break;
+					   default:
+						   break;
+					}
+				}		
+				
+				this.drawLine = function(pt1, pt2, preview){
+					if(previewline != null){
+						scene.remove(previewline);
+						previewline = null;
+					}
+				
+					var geometry = new THREE.Geometry;
+					geometry.vertices.push(pt1, pt2);
+					var material = new THREE.LineBasicMaterial( { color : 0x00ff00 } );
+					
+					if(preview == true){
+						previewline = new THREE.Line(geometry, material);
+						scene.add(previewline);
+					}
+					else
+						scene.add(new THREE.Line(geometry, material));
+				}		
+			}	
+			
+			DrawPolylineCmd.prototype = new SketchCommand();
+			
+			// Circle center Radius command
+			function CircleCenterRadiusCmd(id){
+				SketchCommand.call(this, id);
+				
+				var centerPt = null;
+				var radius = null;
+				var previewCircle = null;
+				var segments = 64;				
+				var that = this; // store this
+				
+				this.onMouseDown = function(event){
+					var newPt = new THREE.Vector3();
+					newPt.x = ( event.clientX / viewWidth) * 2 - 1;
+					newPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+					newPt.z = 0.5;
+					newPt.unproject( camera );
+                    					
+					if(this.centerPt == null)
+						this.centerPt = newPt;
+					else{
+						var center = new THREE.Vector3(this.centerPt.x, this.centerPt.y, this.centerPt.z);
+						var	radius = center.distanceTo(newPt);;				
+						that.drawCircle(this.centerPt, radius, false);
+						this.centerPt =  null;
+					}
+				}
+
+				this.onMouseMove = function(event){
+					if(this.centerPt != null){
+						var tempPt = new THREE.Vector3();
+						tempPt.x = ( event.clientX / viewWidth ) * 2 - 1;
+						tempPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+						tempPt.z = 0.5;
+					
+						// inverse project transform to get the position in canvas
+						tempPt.unproject( camera );
+						var center = new THREE.Vector3(this.centerPt.x, this.centerPt.y, this.centerPt.z);
+						var	radius = center.distanceTo(tempPt);	
+						that.drawCircle(this.centerPt, radius, true);
+					}
+				}	
+				
+				this.drawCircle = function(center, radius, preview){
+					if(previewCircle != null){
+						scene.remove(previewCircle);
+						previewCircle = null;
+					}
+					
+					if(radius < 0.00001)
+						return;
+				
+					var curve = new THREE.EllipseCurve(center.x, center.y, radius, radius, 0,  2 * Math.PI, false);
+					var points = curve.getSpacedPoints( segments );
+					var path = new THREE.Path();
+					var geometry = path.createGeometry( points );
+					var material = new THREE.LineBasicMaterial( { color : 0x00ff00 } );
+					if(preview == true){			
+						previewCircle = new THREE.Line( geometry, material );
+						scene.add( previewCircle );
+					}
+					else
+						scene.add(new THREE.Line( geometry, material ));
+				}
+
+				this.onKeyPress = function(event){
+					var  keyCode = event.keyCode ? event.keyCode : event.which;
+					switch(keyCode)
+					{
+					   case 27: //ESC
+						   {
+								//clearPreview();
+								this.centerPt = null;
+						   }
+						   break;
+					   default:
+						   break;
+					}
+				}				
+			}	
+			
+			CircleCenterRadiusCmd.prototype = new SketchCommand();
+			
+			function drawPolyline(){
+				var drawPolylineCmd = new DrawPolylineCmd("drawPolyline");
+				drawPolylineCmd.subScriptEvents();
+			}
+			
+			function drawCircleCenterRadius(){
+				var circleCenterRadiusCmd = new CircleCenterRadiusCmd("drawCircleCenterRadius");
+				circleCenterRadiusCmd.subScriptEvents();
+			}
+			
+			function Initialize() {
+				updateSize();				
+				requestAnimationFrame( Initialize );
+				renderer.render( scene, camera );
+			}			
+		</script>
+	</body>
+</html>
