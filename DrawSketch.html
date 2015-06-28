@@ -14,39 +14,20 @@
 		</form> 
   
 		<script src="js/three.min.js"></script>
+		<script src="js/onSketch.js"></script>
+		<script src="js/OrbitControls.js"></script>
 		<script>
 			var viewWidth = window.innerWidth;
 			var viewHeight = window.innerHeight*0.95;
 			var viewX = 0;
 			var viewY = viewHeight *0.05;		
 			var renderer, camera, scene, light;
+			var sketchApplication = new OnSketch.Application();
+			sketchApplication.init();
 			
-			// initial three node js environment	
-			function initThree() {
-				renderer = new THREE.WebGLRenderer({antialias:true});
-				renderer.setSize(viewWidth, viewHeight);
-				renderer.setViewport(viewX, viewY, viewWidth, viewHeight);
-				// set background color
-				renderer.setClearColor(0x334455, 1.0);
-				document.body.appendChild(renderer.domElement);
-			}
-			
-			// initial camera
-			function initCamera() {
-				camera = new THREE.PerspectiveCamera(75, viewWidth / (viewHeight), 0.1, 1000);
-				//camera.position.x = 400;//set the position of camera
-				//camera.position.y = 0;
-				camera.position.z = 1;  
-				//set the direction of camera
-				//camera.up.x = 0;
-				//camera.up.y = 1;
-				//camera.up.z = 0;
-			} 
-			
-			//initial scene
-			function initScene() {
-				scene = new THREE.Scene();
-			}
+			renderer = sketchApplication.renderer;
+			camera = sketchApplication.camera;
+			scene = sketchApplication.scene;
 			
 			// initial light
 			function initLight() {
@@ -54,11 +35,6 @@
 				light.position.set(50,50,50);
 				scene.add(light);
 			}
-			
-			initThree();
-			initCamera();
-			initScene();
-			initLight();
 			
 			function updateSize() {
 				if ( viewWidth != window.innerWidth || viewHeight != window.innerHeight*0.95 ) {
