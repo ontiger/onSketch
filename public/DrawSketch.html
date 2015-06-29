@@ -90,7 +90,7 @@
 					var newPt = new THREE.Vector3();
 					newPt.x = ( event.clientX / viewWidth ) * 2 - 1;
 					newPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
-					newPt.z = 0.5;
+					newPt.z = 0;
 					newPt.unproject( camera );	
 					if(this.startPt == null)
 						this.startPt = newPt;
@@ -105,7 +105,7 @@
 						var tempPt = new THREE.Vector3();
 						tempPt.x = ( event.clientX / viewWidth ) * 2 - 1;
 						tempPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
-						tempPt.z = 0.5;
+						tempPt.z = 0;
 					
 						// inverse project transform to get the position in canvas
 						tempPt.unproject( camera );
