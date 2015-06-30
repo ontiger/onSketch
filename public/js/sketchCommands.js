@@ -1,12 +1,35 @@
 
+
 function getNDCPt(event)
 {
 	// NDC (normalized Device Coordinate) x [-1, 1], y[1,-1]
-	var newPt = new THREE.Vector3();
+	var newPt = new THREE.Vector2();
 	newPt.x = ( event.clientX / OnSketch.App.view.width ) * 2 - 1;
 	newPt.y = - ( event.clientY / OnSketch.App.view.height ) * 2 + 1;
-	newPt.z = 0;
 	return newPt;
+}
+
+function getPickPoint(event)
+{
+	mouse = getNDCPt(event);
+	OnSketch.App.raycaster.setFromCamera(mouse, OnSketch.App.camera);
+	
+	// compute the intersection between ray and the defaule sketch plane
+	raycaster = OnSketch.App.raycaster;
+	
+	//sketchPlane = OnSketch.App.defaultSketchPlane;
+	normal = new THREE.Vector3(0, 0, 1);
+	sketchPlane = new THREE.Plane(normal, 0);
+	if(sketchPlane != null) {
+		intPt = raycaster.ray.intersectPlane(sketchPlane);
+		if(intPt != null)
+			return intPt;
+	}
+	
+	// perspective camera
+	var point = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+	point.unproject(OnSketch.camera);
+	return point;
 }
 
 // base command
@@ -54,8 +77,7 @@ function DrawPolylineCmd(id){
 	var that = this; // store this
 	
 	this.onMouseDown = function(event){
-		var newPt = getNDCPt(event);
-		newPt.unproject( OnSketch.App.camera );	
+		var newPt = getPickPoint(event);
 		if(this.startPt == null)
 			this.startPt = newPt;
 		else{				
@@ -66,11 +88,7 @@ function DrawPolylineCmd(id){
 
 	this.onMouseMove = function(event){
 		if(this.startPt != null){
-			var tempPt = getNDCPt(event);
-		
-			// inverse project transform to get the position in canvas
-			tempPt.unproject( OnSketch.App.camera );
-		
+			var tempPt = getPickPoint(event);		
 			that.drawLine(this.startPt, tempPt, true);
 		}
 	}
@@ -123,9 +141,7 @@ function CircleCenterRadiusCmd(id){
 	var that = this; // store this
 	
 	this.onMouseDown = function(event){
-		var newPt = getNDCPt(event);
-		newPt.unproject( OnSketch.App.camera );
-							
+		var newPt = getPickPoint(event);							
 		if(this.centerPt == null)
 			this.centerPt = newPt;
 		else{
@@ -138,10 +154,7 @@ function CircleCenterRadiusCmd(id){
 
 	this.onMouseMove = function(event){
 		if(this.centerPt != null){
-			var tempPt = getNDCPt(event);
-		
-			// inverse project transform to get the position in canvas
-			tempPt.unproject( OnSketch.App.camera );
+			var tempPt = getPickPoint(event);
 			var center = new THREE.Vector3(this.centerPt.x, this.centerPt.y, this.centerPt.z);
 			var	radius = center.distanceTo(tempPt);	
 			that.drawCircle(this.centerPt, radius, true);

@@ -67,6 +67,8 @@ OnSketch.Application = function() {
 		this.orbitControl = new THREE.OrbitControls( this.camera );
 		this.orbitControl.damping = 0.2;
 		this.orbitControl.addEventListener( 'change', this.renderer );
+		
+		this.raycaster = new THREE.Raycaster();
 	};
 	
 	this.createOrigin = function()
