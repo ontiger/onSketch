@@ -6,28 +6,26 @@
 			canvas { width: 100%; height: 100% }
 		</style>
 	</head>
-	<body onload='Initialize()'>
+	<body>
 		<form action="test.action" name="SketchToolbar" method="post">  
 			<img src="resources/drawpolyline.png"  border="0" style="CURSOR: hand" onclick="drawPolyline()" />  
 			<img src="resources/circlecenterradius.png"  border="0" style="CURSOR: hand" onclick="drawCircleCenterRadius()"/>  
 			<img src="resources/rectangletwopoint.png"  border="0" style="CURSOR: hand" />  			
 		</form> 
-  
+		
+		<script src="js/jquery.min.js"></script>
 		<script src="js/three.min.js"></script>
 		<script src="js/onSketch.js"></script>
 		<script src="js/OrbitControls.js"></script>
 		<script>
-			var viewWidth = window.innerWidth;
-			var viewHeight = window.innerHeight*0.95;
-			var viewX = 0;
-			var viewY = viewHeight *0.05;		
-			var renderer, camera, scene, light;
 			var sketchApplication = new OnSketch.Application();
-			sketchApplication.init();
-			
-			renderer = sketchApplication.renderer;
-			camera = sketchApplication.camera;
-			scene = sketchApplication.scene;
+			var scene = sketchApplication.scene;
+			var camera = sketchApplication.camera;
+			var renderer = sketchApplication.renderer;
+				
+			var viewPort = sketchApplication.view;
+			viewWidth = viewPort.width;
+			viewHeight = viewPort.height;
 			
 			// initial light
 			function initLight() {
@@ -36,16 +34,16 @@
 				scene.add(light);
 			}
 			
-			function updateSize() {
-				if ( viewWidth != window.innerWidth || viewHeight != window.innerHeight*0.95 ) {
-					viewWidth  = window.innerWidth;
-					viewHeight = window.innerHeight*0.95;
-					viewY = window.innerHeight * 0.05;
-					renderer.setSize ( viewWidth, viewHeight );
-					renderer.setViewport(viewX, viewY, viewWidth, viewHeight);
-				}
+			function getNDCPt(event)
+			{
+				// NDC (normalized Device Coordinate) x [-1, 1], y[1,-1]
+				var newPt = new THREE.Vector3();
+				newPt.x = ( event.clientX / viewWidth ) * 2 - 1;
+				newPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
+				newPt.z = 0;
+				return newPt;
 			}
-				
+			
 			// base command
 			function InteractiveCommand(id){
 				this.id = id;
@@ -87,10 +85,7 @@
 				var that = this; // store this
 				
 				this.onMouseDown = function(event){
-					var newPt = new THREE.Vector3();
-					newPt.x = ( event.clientX / viewWidth ) * 2 - 1;
-					newPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
-					newPt.z = 0;
+					var newPt = getNDCPt(event);
 					newPt.unproject( camera );	
 					if(this.startPt == null)
 						this.startPt = newPt;
@@ -102,10 +97,7 @@
 
 				this.onMouseMove = function(event){
 					if(this.startPt != null){
-						var tempPt = new THREE.Vector3();
-						tempPt.x = ( event.clientX / viewWidth ) * 2 - 1;
-						tempPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
-						tempPt.z = 0;
+						var tempPt = getNDCPt(event);
 					
 						// inverse project transform to get the position in canvas
 						tempPt.unproject( camera );
@@ -180,10 +172,7 @@
 
 				this.onMouseMove = function(event){
 					if(this.centerPt != null){
-						var tempPt = new THREE.Vector3();
-						tempPt.x = ( event.clientX / viewWidth ) * 2 - 1;
-						tempPt.y = - ( event.clientY / viewHeight ) * 2 + 1;
-						tempPt.z = 0.5;
+						var tempPt = getNDCPt(event);
 					
 						// inverse project transform to get the position in canvas
 						tempPt.unproject( camera );
@@ -243,11 +232,8 @@
 				circleCenterRadiusCmd.subScriptEvents();
 			}
 			
-			function Initialize() {
-				updateSize();				
-				requestAnimationFrame( Initialize );
-				renderer.render( scene, camera );
-			}			
+			sketchApplication.draw();
+			
 		</script>
 	</body>
 </html>
