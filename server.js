@@ -1,18 +1,23 @@
 var express = require('express'),
     app = express();
-	
-//app.use(express.static(__dirname + '/public'));
+
+var http = require('http').Server(app);
+// install socket.io if not
+var io = require('socket.io')(http);
+
 app.use(express.static(__dirname + '/public'));
 app.get('/', function(req, res){
   // later return home page instead
-  res.send('hello world');
+  //res.sendFile(__dirname + '/public/index.html');
+  //res.send('hello world');
 });
 
-app.post('/drawline', function(req, res){
-	// response client request - drawline
-	// call Fusion server to draw line and return the line informations to webserver, and then return to client
-	res.json('{"message":"hello world"}');
-	console.log("drawing a line");
+io.on('connection', function(socket){
+  socket.on('drawline', function(inputs){
+	//call drawline function to create line and then return data to client
+	console.log("socket::drawline - drawing a line");
+	io.emit('drawline', {'test':'line creation complete'});
+  });
 });
 
-app.listen(8080);
+http.listen(8080);

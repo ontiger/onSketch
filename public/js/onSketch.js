@@ -69,6 +69,8 @@ OnSketch.Application = function() {
 		this.orbitControl.addEventListener( 'change', this.renderer );
 		
 		this.raycaster = new THREE.Raycaster();
+		
+		
 	};
 	
 	this.createOrigin = function()
@@ -128,6 +130,29 @@ OnSketch.Application = function() {
 	{
 		this.orbitControl.enabled = enabled;
 	}
+	
+	this.startSocket = function()
+	{
+        this.socket = io();
+        var that = this;
+		this.socket.on('drawline', function(msg){
+            alert(msg.test);
+		  });
+    }
+    
+    this.disconnect = function ()
+    {
+        this.socket.disconnect(true);
+        this.socket = null;
+    }
+	
+	this.writeData = function()
+	{
+		if(this.socket == null)
+			this.startSocket();
+		this.socket.emit('drawline', {"point" : "two points"});
+	}
+
 	
 	this.run = function()
 	{					

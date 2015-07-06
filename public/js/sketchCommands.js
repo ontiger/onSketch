@@ -124,7 +124,10 @@ function DrawPolylineCmd(id){
 			OnSketch.App.scene.add(previewline);
 		}
 		else
+		{
 			OnSketch.App.scene.add(new THREE.Line(geometry, material));
+			OnSketch.App.writeData();
+		}
 	}		
 }	
 
