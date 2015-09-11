@@ -70,9 +70,31 @@ OnSketch.Application = function() {
 		
 		this.raycaster = new THREE.Raycaster();
 		
-		
+		gui = new dat.GUI();
+		var parameters =
+		{
+			name: "Sketch1", 
+			showProfile: false,
+			lookAt: function () 
+			{ 
+				lookAtSketch();
+			}
+		};
+		gui.add( parameters, 'name' ).name('Sketch');
+		gui.add( parameters, 'showProfile' ).name('Show Profile');
+		gui.add( parameters, 'lookAt' ).name('Look At');
+		gui.open();
 	};
 	
+	function lookAtSketch()
+	{
+		application.camera.position.set(0, 0, 100);
+		application.camera.lookAt(application.scene.position);
+		application.orbitControl.center.x = application.scene.position.x;
+		application.orbitControl.center.y = application.scene.position.y;
+		application.orbitControl.center.z = application.scene.position.z;
+	}
+
 	this.createOrigin = function()
 	{
 		// x, y, z axis
