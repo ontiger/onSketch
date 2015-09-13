@@ -6,26 +6,36 @@ function getNDCPt(event){
 	return newPt;
 }
 
-function getPickPoint(event){
-	mouse = getNDCPt(event);
+function getInferencePoint(event){
+	var mouse = getNDCPt(event);
 	OnSketch.App.raycaster.setFromCamera(mouse, OnSketch.App.camera);
 	
 	// compute the intersection between ray and the default sketch plane
-	raycaster = OnSketch.App.raycaster;
-	
+	var raycaster = OnSketch.App.raycaster;
+	var intersects = raycaster.intersectObjects(OnSketch.App.geometries.children, true);
+
+	// inference to geometries
+	if (intersects.length > 0) 
+	{
+		return new OnSketch.InferenceInfo(intersects[0].point, intersects[0].object)
+	} 
+
 	//sketchPlane = OnSketch.App.defaultSketchPlane;
-	normal = new THREE.Vector3(0, 0, 1);
-	sketchPlane = new THREE.Plane(normal, 0);
+	var normal = new THREE.Vector3(0, 0, 1);
+	var sketchPlane = new THREE.Plane(normal, 0);
 	if(sketchPlane != null) {
-		intPt = raycaster.ray.intersectPlane(sketchPlane);
+		var intPt = raycaster.ray.intersectPlane(sketchPlane);
 		if(intPt != null)
-			return intPt;
+		{
+			return new OnSketch.InferenceInfo(intPt, null);
+		}
 	}
 	
 	// perspective camera
 	var point = new THREE.Vector3(mouse.x, mouse.y, 0.5);
 	point.unproject(OnSketch.camera);
-	return point;
+	var ret = new OnSketch.InferenceInfo(point, null);
+	return ret;
 }
 
 Object.extend = function(destination, source) { 
@@ -91,6 +101,7 @@ SketchCommand.prototype.extend({
 		this.clearPreview();
 		this.clearData();
 		this.unsubScriptEvents();
+		OnSketch.App.cursor.clearCursor();
 	}
 })
 
@@ -103,19 +114,21 @@ function DrawPolylineCmd(id){
 	var that = this; // store this
 	
 	this.onMouseDown = function(event){
-		var newPt = getPickPoint(event);
+		var newPt = getInferencePoint(event);
 		if(startPt == null)
-			startPt = newPt;
+			startPt = newPt.updatedPosition;
 		else{				
-			that.drawLine(startPt, newPt, false);
-			startPt =  newPt;
+			that.drawLine(startPt, newPt.updatedPosition, false);
+			startPt =  newPt.updatedPosition;
 		}
 	}
 
 	this.onMouseMove = function(event){
+		var mousePt = getInferencePoint(event);		
+		OnSketch.App.cursor.cursorType = mousePt.geometry == null ? 0 : 1;
+		OnSketch.App.cursor.updateCursor(mousePt.updatedPosition);
 		if(startPt != null){
-			var tempPt = getPickPoint(event);		
-			that.drawLine(startPt, tempPt, true);
+			that.drawLine(startPt, mousePt.updatedPosition, true);
 		}
 	}
 
@@ -127,6 +140,7 @@ function DrawPolylineCmd(id){
 			   {
 					that.clearPreview();
 					that.clearData();
+					OnSketch.App.cursor.clearCursor();
 					//that.unsubScriptEvents();
 			   }
 			   break;
@@ -159,8 +173,9 @@ function DrawPolylineCmd(id){
 			OnSketch.App.scene.add(previewline);
 		}
 		else
-			OnSketch.App.scene.add(new THREE.Line(geometry, material));
+			OnSketch.App.geometries.add(new THREE.Line(geometry, material));
 	}
+
 }	
 
 DrawPolylineCmd.prototype = new SketchCommand();
@@ -175,22 +190,26 @@ function CircleCenterRadiusCmd(id){
 	var that = this; // store this
 	
 	this.onMouseDown = function(event){
-		var newPt = getPickPoint(event);							
+		var newPt = getInferencePoint(event);							
 		if(centerPt == null)
-			centerPt = newPt;
+			centerPt = newPt.updatedPosition;
 		else{
 			var center = new THREE.Vector3(centerPt.x, centerPt.y, centerPt.z);
-			var	radius = center.distanceTo(newPt);;				
+			var	radius = center.distanceTo(newPt.updatedPosition);				
 			that.drawCircle(centerPt, radius, false);
 			centerPt =  null;
 		}
 	}
 
 	this.onMouseMove = function(event){
+		var tempPt = getInferencePoint(event);
+
+		OnSketch.App.cursor.cursorType = tempPt.geometry == null ? 0 : 1;
+		OnSketch.App.cursor.updateCursor(tempPt.updatedPosition);	
 		if(centerPt != null){
-			var tempPt = getPickPoint(event);
+
 			var center = new THREE.Vector3(centerPt.x, centerPt.y, centerPt.z);
-			var	radius = center.distanceTo(tempPt);	
+			var	radius = center.distanceTo(tempPt.updatedPosition);	
 			that.drawCircle(centerPt, radius, true);
 		}
 	}	
@@ -204,6 +223,7 @@ function CircleCenterRadiusCmd(id){
 					that.clearPreview();
 					that.clearData();
 					that.unsubScriptEvents();
+					OnSketch.App.cursor.clearCursor();
 			   }
 			   break;
 		   default:
@@ -239,7 +259,7 @@ function CircleCenterRadiusCmd(id){
 			OnSketch.App.scene.add( previewCircle );
 		}
 		else
-			OnSketch.App.scene.add(new THREE.Line( geometry, material ));
+			OnSketch.App.geometries.add(new THREE.Line( geometry, material ));
 	}
 }	
 
@@ -254,19 +274,21 @@ function RectangleTwoPointCmd(id){
 	var that = this; // store this
 	
 	this.onMouseDown = function(event){
-		var newPt = getPickPoint(event);
+		var newPt = getInferencePoint(event);
 		if(firstPt == null)
-			firstPt = newPt;
+			firstPt = newPt.updatedPosition;
 		else{				
-			that.drawRectangle(firstPt, newPt, false);
+			that.drawRectangle(firstPt, newPt.updatedPosition, false);
 			firstPt =  null;
 		}
 	}
 
 	this.onMouseMove = function(event){
+		var tempPt = getInferencePoint(event);		
+		OnSketch.App.cursor.cursorType = tempPt.geometry == null ? 0 : 1;
+		OnSketch.App.cursor.updateCursor(tempPt.updatedPosition);	
 		if(firstPt != null){
-			var tempPt = getPickPoint(event);		
-			that.drawRectangle(firstPt, tempPt, true);
+			that.drawRectangle(firstPt, tempPt.updatedPosition, true);
 		}
 	}	
 	
@@ -279,6 +301,7 @@ function RectangleTwoPointCmd(id){
 					that.clearPreview();
 					that.clearData();
 					that.unsubScriptEvents();
+					OnSketch.App.cursor.clearCursor();
 			   }
 			   break;
 		   default:
