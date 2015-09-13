@@ -105,9 +105,18 @@ OnSketch.Application = function() {
 	this.grid=null;
 	this.view=null;
 	this.defaultSketchPlane = null;
+	this.planes = new Array;
+
 	this.geometries = null;
+
 	this.cursorNode = null;
 	this.cursor = null;
+
+/*
+	this.tooltipConext = null;
+	this.tooltipTexture = null;
+	this.tooltipSprite = null;
+	*/
 	
 	var application = this;
 	
@@ -151,13 +160,39 @@ OnSketch.Application = function() {
 		this.cursor = new OnSketch.Cursor(this.cursorNode, this.orbitControl);
 		
 		this.raycaster = new THREE.Raycaster();
-		this.raycaster.linePrecision = 5;
+		this.raycaster.linePrecision = 4;
 		
+		this.createPalette();
+
+		/*
+		// create a canvas element
+		var canvas1 = document.createElement('canvas');
+		this.tooltipConext = canvas1.getContext('2d');
+		this.tooltipConext.font = "15px Arial";
+		this.tooltipConext.fillStyle = "rgba(0,0,0,0.95)";
+		this.tooltipConext.fillText('onsketch', 0, 20);
+    
+		// canvas contents will be used for a texture
+		this.tooltipTexture = new THREE.Texture(canvas1) 
+		this.tooltipTexture.needsUpdate = true;
+	
+		var spriteMaterial = new THREE.SpriteMaterial( { map: this.tooltipTexture, useScreenCoordinates: true } );
+	
+		this.tooltipSprite = new THREE.Sprite(spriteMaterial);
+		this.tooltipSprite.scale.set(100,100,1.0);
+		this.tooltipSprite.position.set( 0, 0, 0 );
+		this.scene.add(this.tooltipSprite);	
+		*/
+	};
+	
+	this.createPalette = function()
+	{
 		gui = new dat.GUI();
 		var parameters =
 		{
 			name: "Sketch1", 
 			showProfile: false,
+			showPlanes: true,
 			lookAt: function () 
 			{ 
 				lookAtSketch();
@@ -165,10 +200,29 @@ OnSketch.Application = function() {
 		};
 		gui.add( parameters, 'name' ).name('Sketch');
 		gui.add( parameters, 'showProfile' ).name('Show Profile');
+		var planesCheck = gui.add(parameters, 'showPlanes').name('Show Planes');
+		planesCheck.onChange(
+			function(value)
+			{
+				var l = application.planes.length;
+				for(var i = 0; i < l; ++i)
+				{
+					application.planes[i].visible = value;
+				}
+			});
 		gui.add( parameters, 'lookAt' ).name('Look At');
-		gui.open();
-	};
-	
+		gui.open();	
+	}
+
+	this.updateTooltip = function(pos, str)
+	{
+		// update sprite position
+		/*
+		application.tooltipSprite.position.set( pos.x, pos.y + 20, 0 );
+		application.tooltipTexture.needsUpdate = true;
+		*/
+	}
+
 	function lookAtSketch()
 	{
 		application.camera.position.set(0, 0, 100);
@@ -211,6 +265,10 @@ OnSketch.Application = function() {
 		xzPlane.position.x = 30;
 		xzPlane.position.z = 30;
 		this.scene.add( xzPlane );
+
+		this.planes.push(xyPlane);
+		this.planes.push(xzPlane);
+		this.planes.push(yzPlane);
 	};
 	
 	this.createGrid = function()

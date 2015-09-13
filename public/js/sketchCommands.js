@@ -125,8 +125,10 @@ function DrawPolylineCmd(id){
 
 	this.onMouseMove = function(event){
 		var mousePt = getInferencePoint(event);		
+		// no idea how to use defined enum directly
 		OnSketch.App.cursor.cursorType = mousePt.geometry == null ? 0 : 1;
 		OnSketch.App.cursor.updateCursor(mousePt.updatedPosition);
+		OnSketch.App.updateTooltip(getNDCPt(event));
 		if(startPt != null){
 			that.drawLine(startPt, mousePt.updatedPosition, true);
 		}
@@ -285,6 +287,7 @@ function RectangleTwoPointCmd(id){
 
 	this.onMouseMove = function(event){
 		var tempPt = getInferencePoint(event);		
+		// no idea how to use defined enum directly
 		OnSketch.App.cursor.cursorType = tempPt.geometry == null ? 0 : 1;
 		OnSketch.App.cursor.updateCursor(tempPt.updatedPosition);	
 		if(firstPt != null){
