@@ -24,6 +24,80 @@ OnSketch.View = function(){
 	this.update();
 };
 
+OnSketch.Cursor = function(obj, o)
+{
+	var CursorType = 
+	{
+		eMove : 0,
+		eSnap : 1
+	}
+	this.size = 10;
+	this.node = obj;
+	this.orbitControl = o;
+	this.cursorType = CursorType.eMove;
+	this.clearCursor = function()
+	{
+		this.node.children = [];
+	}
+
+	this.updateCursor = function(pt)
+	{
+		var sz = this.size;
+		if ( this.orbitControl.object instanceof THREE.PerspectiveCamera ) {
+			var dist = this.orbitControl.object.position.distanceTo(this.orbitControl.target);
+			dist /= 300;
+			sz *= dist;
+		} else if ( this.orbitControl.object instanceof THREE.OrthographicCamera ) {
+			// not tested
+			sz *= this.orbitControl.object.zoom;
+		}	
+		this.node.children = [];
+		/*
+		if(window.console)
+		{
+			window.console.log(this.orbitControl.object.position.x + ' ' + this.orbitControl.object.position.y + ' ' + this.orbitControl.object.position.z);
+		}
+		*/
+
+		var geometry1 = new THREE.Geometry;
+		var geometry2 = new THREE.Geometry;
+		if(this.cursorType === CursorType.eMove)
+		{
+			var pt1 = new THREE.Vector3(pt.x - sz, pt.y, 0);
+			var pt2 = new THREE.Vector3(pt.x + sz, pt.y, 0);
+			var pt3 = new THREE.Vector3(pt.x, pt.y - sz, 0);
+			var pt4 = new THREE.Vector3(pt.x, pt.y + sz, 0);
+			geometry1.vertices.push(pt1, pt2);
+			geometry2.vertices.push(pt3, pt4);
+		}
+		else if(this.cursorType === CursorType.eSnap)
+		{
+			var pt1 = new THREE.Vector3(pt.x - sz, pt.y - sz, 0);
+			var pt2 = new THREE.Vector3(pt.x + sz, pt.y + sz, 0);
+			var pt3 = new THREE.Vector3(pt.x - sz, pt.y + sz, 0);
+			var pt4 = new THREE.Vector3(pt.x + sz, pt.y - sz, 0);
+			geometry1.vertices.push(pt1, pt2);
+			geometry2.vertices.push(pt3, pt4);
+		}
+		else
+		{
+			return;
+		}
+
+		var material = new THREE.LineBasicMaterial( { color : 0x0000ff } );
+		
+		var line1 = new THREE.Line(geometry1, material);
+		var line2 = new THREE.Line(geometry2, material);
+		this.node.add(line1);
+		this.node.add(line2);	
+	}
+}
+
+OnSketch.InferenceInfo = function(pos, geom) {
+	this.updatedPosition = pos;
+	this.geometry = geom;
+}
+
 OnSketch.Application = function() {
 	this.scene = null;
 	this.camera=null;
@@ -31,6 +105,18 @@ OnSketch.Application = function() {
 	this.grid=null;
 	this.view=null;
 	this.defaultSketchPlane = null;
+	this.planes = new Array;
+
+	this.geometries = null;
+
+	this.cursorNode = null;
+	this.cursor = null;
+
+/*
+	this.tooltipConext = null;
+	this.tooltipTexture = null;
+	this.tooltipSprite = null;
+	*/
 	
 	var application = this;
 	this.profiles = [];
@@ -47,6 +133,8 @@ OnSketch.Application = function() {
 		
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera( 75, this.view.width / this.view.height, 0.1, 1000 );
+		this.geometries = new THREE.Object3D();
+		this.cursorNode = new THREE.Object3D();
 
 		// default eye position
 		this.camera.position.z = 150;
@@ -64,16 +152,87 @@ OnSketch.Application = function() {
 		
 		this.createOrigin();
 		this.createGrid();
+		this.scene.add(this.geometries);
+		this.scene.add(this.cursorNode);
 		
 		this.orbitControl = new THREE.OrbitControls( this.camera );
 		this.orbitControl.damping = 0.2;
 		this.orbitControl.addEventListener( 'change', this.renderer );
+		this.cursor = new OnSketch.Cursor(this.cursorNode, this.orbitControl);
 		
 		this.raycaster = new THREE.Raycaster();
+		this.raycaster.linePrecision = 4;
 		
-		
+		this.createPalette();
+
+		/*
+		// create a canvas element
+		var canvas1 = document.createElement('canvas');
+		this.tooltipConext = canvas1.getContext('2d');
+		this.tooltipConext.font = "15px Arial";
+		this.tooltipConext.fillStyle = "rgba(0,0,0,0.95)";
+		this.tooltipConext.fillText('onsketch', 0, 20);
+    
+		// canvas contents will be used for a texture
+		this.tooltipTexture = new THREE.Texture(canvas1) 
+		this.tooltipTexture.needsUpdate = true;
+	
+		var spriteMaterial = new THREE.SpriteMaterial( { map: this.tooltipTexture, useScreenCoordinates: true } );
+	
+		this.tooltipSprite = new THREE.Sprite(spriteMaterial);
+		this.tooltipSprite.scale.set(100,100,1.0);
+		this.tooltipSprite.position.set( 0, 0, 0 );
+		this.scene.add(this.tooltipSprite);	
+		*/
 	};
 	
+	this.createPalette = function()
+	{
+		gui = new dat.GUI();
+		var parameters =
+		{
+			name: "Sketch1", 
+			showProfile: false,
+			showPlanes: true,
+			lookAt: function () 
+			{ 
+				lookAtSketch();
+			}
+		};
+		gui.add( parameters, 'name' ).name('Sketch');
+		gui.add( parameters, 'showProfile' ).name('Show Profile');
+		var planesCheck = gui.add(parameters, 'showPlanes').name('Show Planes');
+		planesCheck.onChange(
+			function(value)
+			{
+				var l = application.planes.length;
+				for(var i = 0; i < l; ++i)
+				{
+					application.planes[i].visible = value;
+				}
+			});
+		gui.add( parameters, 'lookAt' ).name('Look At');
+		gui.open();	
+	}
+
+	this.updateTooltip = function(pos, str)
+	{
+		// update sprite position
+		/*
+		application.tooltipSprite.position.set( pos.x, pos.y + 20, 0 );
+		application.tooltipTexture.needsUpdate = true;
+		*/
+	}
+
+	function lookAtSketch()
+	{
+		application.camera.position.set(0, 0, 100);
+		application.camera.lookAt(application.scene.position);
+		application.orbitControl.center.x = application.scene.position.x;
+		application.orbitControl.center.y = application.scene.position.y;
+		application.orbitControl.center.z = application.scene.position.z;
+	}
+
 	this.createOrigin = function()
 	{
 		// x, y, z axis
@@ -91,7 +250,7 @@ OnSketch.Application = function() {
 		this.scene.add( xyPlane );
 		
 		this.defaultSketchPlane = xyPlane;
-						
+
 		// yz plane
 		var yzPlaneGeometry = new THREE.PlaneGeometry( 50, 50, 320 );
 		var yzPlane = new THREE.Mesh( yzPlaneGeometry, material );
@@ -107,6 +266,10 @@ OnSketch.Application = function() {
 		xzPlane.position.x = 30;
 		xzPlane.position.z = 30;
 		this.scene.add( xzPlane );
+
+		this.planes.push(xyPlane);
+		this.planes.push(xzPlane);
+		this.planes.push(yzPlane);
 	};
 	
 	this.createGrid = function()
