@@ -142,6 +142,7 @@ function DrawPolylineCmd(id){
 			   {
 					that.clearPreview();
 					that.clearData();
+					that.unsubScriptEvents();
 					OnSketch.App.cursor.clearCursor();
 					//that.unsubScriptEvents();
 			   }
@@ -177,10 +178,10 @@ function DrawPolylineCmd(id){
 		else {
 		    OnSketch.App.geometries.add(new THREE.Line(geometry, material));
 			var data = {
-			"line" : {
-				"pt1" : {"x" : pt1.x, "y" : pt1.y, "z" : pt1.z} ,
-				"pt2" : {"x" : pt2.x, "y" : pt2.y, "z" : pt2.z} 
-			}
+				"line" : {
+					"pt1" : {"x" : pt1.x, "y" : pt1.y, "z" : pt1.z} ,
+					"pt2" : {"x" : pt2.x, "y" : pt2.y, "z" : pt2.z} 
+				}
 			};
 		    OnSketch.App.writeData(data);
 		}			
@@ -268,7 +269,16 @@ function CircleCenterRadiusCmd(id){
 			OnSketch.App.scene.add( previewCircle );
 		}
 		else
+		{
 			OnSketch.App.geometries.add(new THREE.Line( geometry, material ));
+			var data = {
+				"circle" : {
+					"center" : {"x" : center.x, "y" : center.y, "z" : center.z} ,
+					"radius" : {"r" : radius} 
+				}
+			};
+		    OnSketch.App.writeData(data);
+		}
 	}
 }	
 
@@ -355,7 +365,18 @@ function RectangleTwoPointCmd(id){
 			previewLines.push(previewline);
 		}
 		else
+		{
 			OnSketch.App.scene.add(new THREE.Line(geometry, material));
+			var data = {
+				"rectangle" : {
+					"pt1" : {"x" : pt1.x, "y" : pt1.y, "z" : pt1.z} ,
+					"pt2" : {"x" : pt2.x, "y" : pt2.y, "z" : pt2.z} ,
+					"pt3" : {"x" : pt3.x, "y" : pt3.y, "z" : pt3.z},
+					"pt4" : {"x" : pt4.x, "y" : pt4.y, "z" : pt4.z}
+				}
+			};
+		    OnSketch.App.writeData(data);
+		}
 	}
 }	
 

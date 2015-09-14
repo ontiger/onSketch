@@ -119,7 +119,7 @@ OnSketch.Application = function() {
 	*/
 	
 	var application = this;
-	this.profiles = [];
+	this.profiles = null;
 	
 	this.init = function()
 	{
@@ -135,6 +135,7 @@ OnSketch.Application = function() {
 		this.camera = new THREE.PerspectiveCamera( 75, this.view.width / this.view.height, 0.1, 1000 );
 		this.geometries = new THREE.Object3D();
 		this.cursorNode = new THREE.Object3D();
+		this.profiles = new THREE.Object3D();
 
 		// default eye position
 		this.camera.position.z = 150;
@@ -300,20 +301,20 @@ OnSketch.Application = function() {
         this.socket = io();
         var that = this;
 		this.socket.on('drawCurve', function(msg){
-            that.drawMeshes(msg.meshes);
+            that.drawProfiles(msg.meshes);
 		  });
     }
 	
-	this.drawMeshes = function(meshes)
+	this.drawProfiles = function(meshes)
 	{
-		if(meshes)
+		if(meshes && meshes.length > 0)
 		{
 			// clear old profile scene nodes
-			for(var i = 0; i < this.profiles.length; ++i)
-				this.scene.remove(this.profiles[i]);
+			this.scene.remove(this.profiles);
 				
-			this.profiles = [];
-			var material = new THREE.MeshBasicMaterial( { color: 0xff00ff } );
+			this.profiles = new THREE.Object3D();
+			this.scene.add(this.profiles);
+			var material = new THREE.MeshBasicMaterial( { color: 0x225588 } );
 			for(var i = 0; i < meshes.length; ++i)
 			{
 				var mesh = meshes[i];
@@ -330,17 +331,17 @@ OnSketch.Application = function() {
 				{
 					vnormal = new THREE.Vector3(mesh.normals[j].x, mesh.normals[j].y, mesh.normals[j].z);
 					//faceGeometry.
-					break;					
+					break;
 				}
 				
-				for(var i = 0; i < mesh.indices.length; i=i+3)
+				for(var j = 0; j < mesh.indices.length; j=j+3)
 				{
-					var facet = new THREE.Face3(mesh.indices[i], mesh.indices[i+1], mesh.indices[i+2]);
+					var facet = new THREE.Face3(mesh.indices[j], mesh.indices[j+1], mesh.indices[j+2]);
 					faceGeometry.faces.push(facet);
 				}
 				var tmesh = new THREE.Mesh(faceGeometry, material);
-				this.scene.add(tmesh);
-				this.profiles.push(tmesh);
+				tmesh.userData = mesh.id;
+				this.profiles.add(tmesh);
 			}
 		}
 	}
