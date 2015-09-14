@@ -33,6 +33,7 @@ OnSketch.Application = function() {
 	this.defaultSketchPlane = null;
 	
 	var application = this;
+	this.profiles = [];
 	
 	this.init = function()
 	{
@@ -135,10 +136,51 @@ OnSketch.Application = function() {
 	{
         this.socket = io();
         var that = this;
-		this.socket.on('drawline', function(msg){
-            alert(msg.test);
+		this.socket.on('drawCurve', function(msg){
+            that.drawMeshes(msg.meshes);
 		  });
     }
+	
+	this.drawMeshes = function(meshes)
+	{
+		if(meshes)
+		{
+			// clear old profile scene nodes
+			for(var i = 0; i < this.profiles.length; ++i)
+				this.scene.remove(this.profiles[i]);
+				
+			this.profiles = [];
+			var material = new THREE.MeshBasicMaterial( { color: 0xff00ff } );
+			for(var i = 0; i < meshes.length; ++i)
+			{
+				var mesh = meshes[i];
+				var faceGeometry = new THREE.Geometry();
+				
+				for(var j = 0; j < mesh.points.length; ++j)
+				{
+					var tpt = new THREE.Vector3(mesh.points[j].x, mesh.points[j].y, mesh.points[j].z);
+					faceGeometry.vertices.push(tpt);
+				}
+				
+				var normal = null;
+				for(var j = 0; j < mesh.normals.length; ++j)
+				{
+					vnormal = new THREE.Vector3(mesh.normals[j].x, mesh.normals[j].y, mesh.normals[j].z);
+					//faceGeometry.
+					break;					
+				}
+				
+				for(var i = 0; i < mesh.indices.length; i=i+3)
+				{
+					var facet = new THREE.Face3(mesh.indices[i], mesh.indices[i+1], mesh.indices[i+2]);
+					faceGeometry.faces.push(facet);
+				}
+				var tmesh = new THREE.Mesh(faceGeometry, material);
+				this.scene.add(tmesh);
+				this.profiles.push(tmesh);
+			}
+		}
+	}
     
     this.disconnect = function ()
     {
@@ -146,11 +188,11 @@ OnSketch.Application = function() {
         this.socket = null;
     }
 	
-	this.writeData = function()
+	this.writeData = function(data)
 	{
 		if(this.socket == null)
 			this.startSocket();
-		this.socket.emit('drawline', {"point" : "two points"});
+		this.socket.emit('drawCurve', data);
 	}
 
 	

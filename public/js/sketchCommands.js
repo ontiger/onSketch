@@ -154,14 +154,22 @@ function DrawPolylineCmd(id){
 		geometry.vertices.push(pt1, pt2);
 		var material = new THREE.LineBasicMaterial( { color : 0x00ff00 } );
 		
-		if(preview == true){
-			previewline = new THREE.Line(geometry, material);
-			OnSketch.App.scene.add(previewline);
+		if (preview == true) {
+		    previewline = new THREE.Line(geometry, material);
+		    OnSketch.App.scene.add(previewline);
 		}
-		else
-			OnSketch.App.scene.add(new THREE.Line(geometry, material));
+		else {
+		    OnSketch.App.scene.add(new THREE.Line(geometry, material));
+			var data = {
+			"line" : {
+				"pt1" : {"x" : pt1.x, "y" : pt1.y, "z" : pt1.z} ,
+				"pt2" : {"x" : pt2.x, "y" : pt2.y, "z" : pt2.z} 
+			}
+			};
+		    OnSketch.App.writeData(data);
+		}
 	}
-}	
+}
 
 DrawPolylineCmd.prototype = new SketchCommand();
 
